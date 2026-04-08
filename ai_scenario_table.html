@@ -1,0 +1,297 @@
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-md);
+  margin-bottom: 14px;
+}
+.leg-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--color-text-secondary); }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+.table-wrap {
+  background: var(--color-background-primary);
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: var(--border-radius-lg);
+  overflow-x: auto; /* 가로 스크롤 허용으로 짤림 방지 */
+}
+
+.row {
+  display: grid;
+  /* 번호/역할/대사/기술 레이어 비율 조정 */
+  grid-template-columns: 45px 110px 1.2fr 2fr; 
+  min-width: 900px; /* 전체 최소 넓이 지정으로 데이터 보호 */
+  gap: 0;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+  align-items: stretch;
+}
+.row:last-child { border-bottom: none; }
+
+.row.header {
+  background: var(--color-background-secondary);
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+  border-bottom: 0.5px solid var(--color-border-secondary);
+}
+
+.cell {
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  border-right: 0.5px solid var(--color-border-tertiary);
+  display: flex;
+  flex-direction: column; /* 태그가 위아래로도 쌓일 수 있게 변경 */
+  justify-content: center;
+  align-items: flex-start;
+}
+.cell:last-child { border-right: none; }
+
+.cell.num {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  align-items: center;
+}
+
+.cell.header-cell {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  align-items: center;
+}
+
+.actor-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.pill-gray   { background: #F1EFE8; color: #444441; }
+.pill-teal   { background: #E1F5EE; color: #085041; }
+.pill-amber  { background: #FAEEDA; color: #633806; }
+.pill-purple { background: #EEEDFE; color: #3C3489; }
+
+.pill-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dot-gray   { background: #888780; }
+.dot-teal   { background: #1D9E75; }
+.dot-amber  { background: #BA7517; }
+.dot-purple { background: #7F77DD; }
+
+.tech-tag-container {
+  display: flex;
+  flex-wrap: wrap; /* 태그가 너비를 넘으면 다음 줄로 이동 */
+  gap: 6px;
+}
+
+.tech-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: var(--color-background-secondary);
+  color: var(--color-text-secondary);
+  border: 0.5px solid var(--color-border-tertiary);
+  line-height: 1.4;
+  word-break: keep-all; /* 단어 단위로 줄바꿈 */
+  max-width: 100%; /* 부모 너비를 넘지 않도록 설정 */
+}
+
+.section-divider {
+  background: var(--color-background-secondary);
+  padding: 8px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 0.5px solid var(--color-border-tertiary);
+}
+</style>
+
+<div style="padding: 1rem 0 1.5rem;">
+
+<div class="legend">
+  <div class="leg-item"><span class="leg-dot" style="background:#888780;"></span>할머니 — 사용자</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#1D9E75;"></span>똑띠 — Tool Agent (실행)</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#BA7517;"></span>에트 — Orchestrator (조율)</div>
+  <div class="leg-item"><span class="leg-dot" style="background:#7F77DD;"></span>똑똑이 — LLM / Claude (판단)</div>
+</div>
+
+<div class="table-wrap">
+
+  <div class="row header">
+    <div class="cell header-cell">#</div>
+    <div class="cell header-cell">역할</div>
+    <div class="cell header-cell">대사 / 행동</div>
+    <div class="cell header-cell">기술 레이어 (테크 스택)</div>
+  </div>
+
+  <div class="section-divider">요청 수신</div>
+
+  <div class="row">
+    <div class="cell num">1</div>
+    <div class="cell"><span class="actor-pill pill-gray"><span class="pill-dot dot-gray"></span>할머니</span></div>
+    <div class="cell speech">"을지대병원 어떻게 가는겨?"</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">선언: AndroidManifest.xml</span>
+        <span class="tech-tag">Voice Input</span>
+        <span class="tech-tag">STT 시작</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="cell num">2</div>
+    <div class="cell"><span class="actor-pill pill-teal"><span class="pill-dot dot-teal"></span>똑띠</span></div>
+    <div class="cell speech">"에트야, 텍스트로 바꿨어. 알려줘!"</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">STT → Server 전송</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider">계획 수립</div>
+
+  <div class="row">
+    <div class="cell num">3</div>
+    <div class="cell"><span class="actor-pill pill-amber"><span class="pill-dot dot-amber"></span>에트</span></div>
+    <div class="cell speech">"똑똑아, 할머니가 을지대 간다는데 어떡함?"</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">Prompt Engineering</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="cell num">4</div>
+    <div class="cell"><span class="actor-pill pill-purple"><span class="pill-dot dot-purple"></span>똑똑이</span></div>
+    <div class="cell speech">"상황 파악 완료. ①앱 실행 → ②출발/도착 입력 → ③가이드"</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">Reasoning</span>
+        <span class="tech-tag">Plan 수립</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider">실행 루프 — Step 1: 앱 실행</div>
+
+  <div class="row">
+    <div class="cell num">5</div>
+    <div class="cell"><span class="actor-pill pill-amber"><span class="pill-dot dot-amber"></span>에트</span></div>
+    <div class="cell speech">"똑띠야, 앱부터 켜!"</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">API Call (명령 하달)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="cell num">6</div>
+    <div class="cell"><span class="actor-pill pill-teal"><span class="pill-dot dot-teal"></span>똑띠</span></div>
+    <div class="cell speech">"켰어요! 캡처본(증거) 여기요!"</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">권한: Accessibility Service API</span>
+        <span class="tech-tag">권한: Screen Capture (MediaProjection API)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="cell num">7</div>
+    <div class="cell"><span class="actor-pill pill-amber"><span class="pill-dot dot-amber"></span>에트</span></div>
+    <div class="cell speech">"똑똑아, 앱 킨 거 맞아? 증거 확인해봐."</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">Validation (검증 요청)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider">실행 루프 — Step 2: 출발/도착 입력</div>
+
+  <div class="row">
+    <div class="cell num">8</div>
+    <div class="cell"><span class="actor-pill pill-purple"><span class="pill-dot dot-purple"></span>똑똑이</span></div>
+    <div class="cell speech">"맞네. 출발지 '현위치', 도착지 '을지대' 넣어."</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">UI 분석</span>
+        <span class="tech-tag">좌표값 산출</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="cell num">9</div>
+    <div class="cell"><span class="actor-pill pill-teal"><span class="pill-dot dot-teal"></span>똑띠</span></div>
+    <div class="cell speech">"다 넣었어요! 증거요!"</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">권한: Accessibility Service API</span>
+        <span class="tech-tag">권한: Screen Capture (MediaProjection API)</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider">실행 루프 — Step 3: 오버레이 안내</div>
+
+  <div class="row">
+    <div class="cell num">10</div>
+    <div class="cell"><span class="actor-pill pill-amber"><span class="pill-dot dot-amber"></span>에트</span></div>
+    <div class="cell speech">"오케이, 마지막! 할머니 누르게 빨간 박스 그려!"</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">Overlay Rendering 명령</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="cell num">11</div>
+    <div class="cell"><span class="actor-pill pill-teal"><span class="pill-dot dot-teal"></span>똑띠</span></div>
+    <div class="cell speech">"할머니, 여기(빨간 박스) 누르세요!"</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">권한: SYSTEM_ALERT_WINDOW</span>
+        <span class="tech-tag">WindowManager > 레이어 생성 및 TTS 객체 초기화</span>
+        <span class="tech-tag">기기 해상도 및 밀도 대응 (DisplayMetrics)</span>
+        <span class="tech-tag">초기화 (Service Registration) - 수행 가능 기능 사전등록</span>
+        <span class="tech-tag">동적 가이드 표출: Json 파싱 > 빨간박스 렌더링 > 음성안내</span>
+        <span class="tech-tag">사용자 피드백 루프: OnTouchListener > 판정 > 실패시 롤백</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider">완료</div>
+
+  <div class="row">
+    <div class="cell num">12</div>
+    <div class="cell"><span class="actor-pill pill-purple"><span class="pill-dot dot-purple"></span>똑똑이</span></div>
+    <div class="cell speech">"성공했네. 이제 퇴근한다."</div>
+    <div class="cell">
+      <div class="tech-tag-container">
+        <span class="tech-tag">State: Task Completed</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
