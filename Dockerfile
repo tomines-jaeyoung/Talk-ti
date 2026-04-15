@@ -20,4 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 #"이제 내 진짜 컴퓨터에 있는 나머지 모든 소스 코드(메인 프로그램 등)를 도커 안으로 다 옮겨줘."
 
-CMD ["python"]
+# 5000번 포트를 외부에 열어줍니다.
+EXPOSE 5000
+
+CMD ["python", "app/main.py"]

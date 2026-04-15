@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talk-ti 소통형 에이전트 테스트</title>
+    <!-- 멋진 폰트 적용 -->
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background: linear-gradient(135deg, #f6f8fb 0%, #e5ebf4 100%);
+            margin: 0;
+            padding: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+        .app-container {
+            background-color: #fff;
+            border-radius: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 420px;
+            height: 85vh; /* 화면에 맞게 꽉 차도록 */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        .header {
+            background-color: #1a73e8;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 800;
+        }
+        .clear-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .clear-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .preset-area {
+            padding: 10px 15px;
+            background-color: #f8f9fa;
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            white-space: nowrap;
+            border-bottom: 1px solid #eee;
+        }
+        .preset-area::-webkit-scrollbar {
+            height: 0px; /* 스크롤바 숨김 */
+        }
+        .preset-btn {
+            background: white;
+            border: 1px solid #ddd;
+            padding: 6px 14px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: #444;
+            transition: all 0.2s;
+        }
+        .preset-btn:hover {
+            border-color: #1a73e8;
+            color: #1a73e8;
+            background-color: #f0f4f8;
+        }
+        .chat-area {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #ebf1f5;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .message {
+            max-width: 85%;
+            display: flex;
+            flex-direction: column;
+        }
+        .message.user {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+        .message.bot {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+        .bubble {
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 1rem;
+            line-height: 1.4;
+            position: relative;
+            word-wrap: break-word;
+        }
+        .user .bubble {
+            background-color: #1a73e8;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .bot .bubble {
+            background-color: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .bot .status-badge {
+            display: inline-block;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        .status-chat { background-color: #e8f0fe; color: #1a73e8; }
+        .status-app { background-color: #e6f4ea; color: #137333; }
+        .status-sys { background-color: #fce8e6; color: #c5221f; }
+        
+        .json-toggle {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 5px;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .json-content {
+            display: none;
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.8rem;
+            margin-top: 5px;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .input-area {
+            padding: 15px;
+            background-color: white;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #eee;
+        }
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-family: inherit;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+        .send-btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        .send-btn:hover {
+            transform: scale(1.05);
+        }
+        .loading {
+            align-self: flex-start;
+            background-color: white;
+            padding: 10px 16px;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: none;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        /* 봇 이름 표시 */
+        .bot-name {
+            font-size: 0.75rem;
+            color: #666;
+            margin-bottom: 4px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>🎙️ 똑띠(Talk-ti) 소통형 테스터</h1>
+            <button class="clear-btn" onclick="clearChat()">대화 초기화</button>
+        </div>
+        
+        <div class="preset-area">
+            <button class="preset-btn" onclick="setInput('삼성병원')">삼성병원 (모호한 요청)</button>
+            <button class="preset-btn" onclick="setInput('택시 탈게')">택시 (의도 확정)</button>
+            <button class="preset-btn" onclick="setInput('아니 두번째 강북삼성으로')">강북삼성 (선택지 확정)</button>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <div class="message bot">
+                <div class="bot-name">똑띠 AI</div>
+                <div class="bubble">안녕하세요! 어르신, 앱을 테스트할 말씀을 아래에 입력해주세요. "삼성병원"처럼 일부러 애매하게 말씀해보세요!</div>
+            </div>
+            
+            <div id="loading" class="loading">
+                의도를 파악 중입니다...
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="sttInput" placeholder="어르신 말씀을 입력하세요..." onkeypress="handleEnter(event)">
+            <button class="send-btn" onclick="sendVoiceCommand()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = "http://127.0.0.1:5000";
+
+        function setInput(text) {
+            document.getElementById('sttInput').value = text;
+        }
+
+        function handleEnter(event) {
+            if (event.key === "Enter") {
+                sendVoiceCommand();
+            }
+        }
+
+        function scrollToBottom() {
+            const chatArea = document.getElementById('chatArea');
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function toggleJson(id) {
+            const el = document.getElementById(id);
+            if (el.style.display === 'none' || el.style.display === '') {
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
+        function appendUserMessage(text) {
+            const chatArea = document.getElementById('chatArea');
+            const loadingEl = document.getElementById('loading');
+            
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message user';
+            msgDiv.innerHTML = `<div class="bubble">${text}</div>`;
+            
+            // 로딩 인디케이터 바로 앞에 삽입
+            chatArea.insertBefore(msgDiv, loadingEl);
+            scrollToBottom();
+        }
+
+        function appendBotMessage(data) {
+            const chatArea = document.getElementById('chatArea');
+            const loadingEl = document.getElementById('loading');
+            
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message bot';
+            
+            const randomId = "json_" + Math.random().toString(36).substr(2, 9);
+            
+            let statusBadge = "";
+            if (data.status === 'chat') {
+                statusBadge = '<span class="status-badge status-chat">질문하기</span>';
+            } else if (data.status === 'app_open') {
+                statusBadge = '<span class="status-badge status-app">앱 실행</span>';
+            } else if (data.status === 'system_action') {
+                statusBadge = '<span class="status-badge status-sys">화면 제어</span>';
+            }
+
+            const ttsMessage = data.tts_message || "(TTS 메시지 없음)";
+            const rawJson = JSON.stringify(data, null, 2);
+
+            msgDiv.innerHTML = `
+                <div class="bot-name">똑띠 AI</div>
+                <div class="bubble">
+                    ${statusBadge}<br>
+                    ${ttsMessage}
+                </div>
+                <div class="json-toggle" onclick="toggleJson('${randomId}')">▶ 개발자 정보 (JSON) 보기</div>
+                <div id="${randomId}" class="json-content">${rawJson}</div>
+            `;
+            
+            chatArea.insertBefore(msgDiv, loadingEl);
+            scrollToBottom();
+        }
+
+        async function sendVoiceCommand() {
+            const inputEl = document.getElementById('sttInput');
+            const input = inputEl.value.trim();
+            if (!input) return;
+
+            // UI 업데이트
+            appendUserMessage(input);
+            inputEl.value = '';
+            
+            const loadingEl = document.getElementById('loading');
+            loadingEl.style.display = 'block';
+            scrollToBottom();
+
+            try {
+                const response = await fetch(`${SERVER_URL}/api/voice_command`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({text: input})
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                appendBotMessage(data);
+                
+            } catch (error) {
+                appendBotMessage({
+                    status: "error",
+                    tts_message: `서버 통신 실패: ${error.message}\n도커 서버가 켜져있는지 확인하세요.`
+                });
+            } finally {
+                loadingEl.style.display = 'none';
+                inputEl.focus();
+            }
+        }
+        
+        async function clearChat() {
+            if(!confirm('대화 내역을 모두 지우시겠습니까?')) return;
+            
+            try {
+                await fetch(`${SERVER_URL}/api/chat_clear`, { method: 'POST' });
+                
+                // 화면 비우기
+                const chatArea = document.getElementById('chatArea');
+                const loadingEl = document.getElementById('loading');
+                
+                chatArea.innerHTML = '';
+                chatArea.appendChild(loadingEl);
+                
+                const msgDiv = document.createElement('div');
+                msgDiv.className = 'message bot';
+                msgDiv.innerHTML = `<div class="bot-name">똑띠 AI</div><div class="bubble">대화 내용이 초기화되었습니다. 새로 시작해보세요!</div>`;
+                chatArea.insertBefore(msgDiv, loadingEl);
+                
+            } catch(e) {
+                alert('초기화 실패: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>
