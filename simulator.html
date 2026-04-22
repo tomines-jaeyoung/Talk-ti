@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Talk-ti 안드로이드 시뮬레이터</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* 채팅 패널 */
+        .chat-panel {
+            width: 400px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 85vh;
+        }
+        .header { background: #1a73e8; color: white; padding: 20px; text-align: center; font-weight: 800; }
+        .chat-area { flex-grow: 1; padding: 20px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 15px; }
+        .message { max-width: 85%; padding: 12px 16px; border-radius: 18px; line-height: 1.4; font-size: 0.95rem; }
+        .msg-user { align-self: flex-end; background: #1a73e8; color: white; border-bottom-right-radius: 4px; }
+        .msg-bot { align-self: flex-start; background: white; color: #333; border-bottom-left-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .input-area { padding: 15px; display: flex; gap: 10px; background: white; border-top: 1px solid #eee; }
+        input[type="text"] { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
+        .send-btn { background: #1a73e8; color: white; border: none; width: 45px; border-radius: 50%; cursor: pointer; }
+
+        /* 가상 스마트폰 패널 */
+        .phone-panel {
+            width: 320px;
+            height: 650px;
+            background: #111;
+            border-radius: 40px;
+            padding: 15px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .screen {
+            background: white;
+            width: 100%;
+            height: 100%;
+            border-radius: 30px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+        .status-bar { height: 30px; background: #eee; text-align: center; font-size: 12px; line-height: 30px; color: #666; }
+        
+        /* 앱 화면 상태 */
+        .app-view { display: none; flex-grow: 1; padding: 20px; flex-direction: column; gap: 15px; position: relative; }
+        .app-view.active { display: flex; }
+        
+        /* 목업 UI 요소들 */
+        .mock-btn { background: #e0e0e0; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; font-weight: 600; border: 2px solid transparent; transition: 0.2s; }
+        .mock-input { border: 2px solid #ccc; padding: 15px; border-radius: 10px; font-size: 16px; background: #fafafa; }
+        
+        /* 오버레이 효과 */
+        .overlay-active {
+            border: 4px solid red !important;
+            animation: pulse 1.5s infinite;
+            background-color: #ffebee !important;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+        }
+
+        /* 하단 플로팅 컨트롤 */
+        .control-panel { margin-top: 15px; padding: 15px; background: white; border-radius: 10px; text-align: center; }
+        .control-btn { background: #34a853; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
+
+        .loader { font-size: 0.8rem; color: #666; text-align: center; display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- 왼쪽: 대화형 에이전트 -->
+    <div class="chat-panel">
+        <div class="header">🎙️ 똑띠(Talk-ti) 대화/TTS</div>
+        <div class="chat-area" id="chatArea">
+            <div class="message msg-bot">안녕하세요! 목적지를 말씀해주세요. (예: 삼성병원 갈래)</div>
+            <div id="loading" class="loader">똑띠가 생각하는 중...</div>
+        </div>
+        <div class="input-area">
+            <input type="text" id="sttInput" placeholder="음성 인식 시뮬레이션..." onkeypress="if(event.key==='Enter') sendChat()">
+            <button class="send-btn" onclick="sendChat()">전송</button>
+        </div>
+    </div>
+
+    <!-- 오른쪽: 가상 안드로이드 기기 -->
+    <div>
+        <div class="phone-panel">
+            <div class="screen">
+                <div class="status-bar">12:00 PM | Talk-ti Agent Running</div>
+                
+                <!-- 화면 1: 메인 화면 (돋보기 버튼 있음) -->
+                <div id="screen-1" class="app-view active">
+                    <h3 style="margin-top:0;">카카오T 메인</h3>
+                    <div style="flex-grow:1; background:#f0f0f0; border-radius:10px; display:flex; justify-content:center; align-items:center; color:#999;">지도 영역</div>
+                    <!-- 돋보기 버튼 컴포넌트 -->
+                    <div id="btn_search" class="mock-btn" onclick="handleMockClick('btn_search')">🔍 도착지 검색</div>
+                </div>
+
+                <!-- 화면 2: 검색창 화면 -->
+                <div id="screen-2" class="app-view">
+                    <h3 style="margin-top:0;">도착지 검색</h3>
+                    <!-- 텍스트 입력창 컴포넌트 -->
+                    <div id="search_bar" class="mock-input" style="color:#aaa;">도착지를 입력하세요</div>
+                </div>
+
+                <!-- 화면 3: 검색 결과 및 확인 -->
+                <div id="screen-3" class="app-view">
+                    <h3 style="margin-top:0;">검색 결과</h3>
+                    <div class="mock-input" style="font-weight:bold; color:black; border-color:#1a73e8;" id="result_text">강남 삼성병원</div>
+                    <div style="flex-grow:1;"></div>
+                    <!-- 확인/안내시작 버튼 컴포넌트 -->
+                    <div id="btn_confirm" class="mock-btn" onclick="handleMockClick('btn_confirm')">안내 시작하기</div>
+                </div>
+                
+                <!-- 화면 4: 완료 -->
+                <div id="screen-4" class="app-view">
+                    <h3 style="margin-top:0; color:#34a853;">안내 시작 완료!</h3>
+                    <p style="text-align:center;">모든 시나리오가 성공적으로 종료되었습니다.</p>
+                    <button class="mock-btn" onclick="location.reload()">처음부터 다시하기</button>
+                </div>
+            </div>
+        </div>
+        <div class="control-panel">
+            <button class="control-btn" onclick="triggerScreenAnalyze()">📸 현재 화면 AI에게 분석 요청 (자동 실행됨)</button>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = "http://127.0.0.1:5000";
+        let currentScreen = 1;
+
+        // UI 트리 모의 데이터 (안드로이드가 보내는 JSON)
+        const uiTrees = {
+            1: [{ target_id: "com.kakao.taxi:id/btn_search", target_index: 5, target_text: "도착지 검색" }],
+            2: [{ target_id: "com.kakao.taxi:id/search_bar", target_index: 15, target_text: "" }],
+            3: [{ target_id: "com.kakao.taxi:id/btn_confirm", target_index: 20, target_text: "안내 시작하기" }]
+        };
+
+        // 1. STT 텍스트 전송 (목적지 설정)
+        async function sendChat() {
+            const inputEl = document.getElementById('sttInput');
+            const text = inputEl.value.trim();
+            if(!text) return;
+            
+            appendMsg(text, 'user');
+            inputEl.value = '';
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                const res = await fetch(`${SERVER_URL}/api/voice_command`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({text: text})
+                });
+                const data = await res.json();
+                appendMsg(data.tts_message || "응답을 받았습니다.", 'bot');
+                
+                // 앱 오픈 지시가 떨어지면 화면 분석을 시작
+                if(data.status === 'app_open') {
+                    appendMsg("앱이 실행되었습니다. 화면 분석을 시작합니다.", 'bot');
+                    setTimeout(triggerScreenAnalyze, 2000);
+                }
+            } catch(e) {
+                appendMsg("에러: " + e.message, 'bot');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // 2. 현재 화면 정보를 AI에게 전송
+        async function triggerScreenAnalyze() {
+            document.getElementById('loading').style.display = 'block';
+            
+            try {
+                // 현재 화면의 UI 트리 가져오기
+                const ui_elements = uiTrees[currentScreen];
+                
+                const res = await fetch(`${SERVER_URL}/api/screen_analyze`, {
+                    method: 'POST',
+                    headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({ ui_elements: ui_elements, screenshot: "" })
+                });
+                const data = await res.json();
+                
+                // AI 응답 처리 (오버레이 또는 텍스트 입력)
+                handleAICommand(data);
+                
+            } catch(e) {
+                appendMsg("화면 분석 에러: " + e.message, 'bot');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // 3. AI 명령에 따라 가상 안드로이드 제어
+        function handleAICommand(data) {
+            // TTS 메시지 출력
+            if(data.tts_message) {
+                appendMsg(`🔊 TTS: ${data.tts_message}`, 'bot');
+            }
+
+            // 오버레이 명령 처리 (버튼 붉은색 테두리)
+            if(data.status === 'overlay_command') {
+                // target_id를 바탕으로 html 요소 찾기 (id를 뒷부분만 매핑했다고 가정)
+                const elemId = data.target_id.split('/').pop();
+                const targetElem = document.getElementById(elemId);
+                
+                if(targetElem) {
+                    targetElem.classList.add('overlay-active');
+                    appendMsg("📱 (안드로이드) 사용자 터치 대기 중...", 'bot');
+                }
+            }
+            // 자동 텍스트 입력 처리
+            else if(data.status === 'system_action' && data.action_type === 'ACTION_SET_TEXT') {
+                const elemId = data.target_id.split('/').pop();
+                const targetElem = document.getElementById(elemId);
+                
+                if(targetElem) {
+                    // 글자 입력 시뮬레이션
+                    targetElem.innerHTML = data.arguments;
+                    targetElem.style.color = "black";
+                    targetElem.style.fontWeight = "bold";
+                    
+                    appendMsg(`📱 (안드로이드) 텍스트 자동 입력됨: [${data.arguments}]`, 'bot');
+                    
+                    // 입력 완료 후 다음 화면으로 자동 전환
+                    setTimeout(() => {
+                        changeScreen(3);
+                    }, 2000);
+                }
+            }
+        }
+
+        // 4. 가상 스마트폰 내 사용자 터치 이벤트 (오버레이된 버튼 클릭 시)
+        function handleMockClick(clickedId) {
+            const elem = document.getElementById(clickedId);
+            if(elem.classList.contains('overlay-active')) {
+                elem.classList.remove('overlay-active');
+                appendMsg(`👉 사용자가 '${clickedId}' 버튼을 눌렀습니다.`, 'user');
+                
+                // 화면 전환 로직
+                if(clickedId === 'btn_search') {
+                    changeScreen(2);
+                } else if(clickedId === 'btn_confirm') {
+                    changeScreen(4);
+                }
+            } else {
+                alert("현재 AI가 유도하는 버튼이 아닙니다!");
+            }
+        }
+
+        function changeScreen(screenNum) {
+            document.querySelectorAll('.app-view').forEach(el => el.classList.remove('active'));
+            document.getElementById('screen-' + screenNum).classList.add('active');
+            currentScreen = screenNum;
+            
+            // 화면이 바뀌면 1초 뒤에 자동으로 AI에게 새 화면 분석 요청
+            if(screenNum < 4) {
+                setTimeout(triggerScreenAnalyze, 1000);
+            }
+        }
+
+        // UI 유틸
+        function appendMsg(text, type) {
+            const chatArea = document.getElementById('chatArea');
+            const loadingEl = document.getElementById('loading');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message msg-${type}`;
+            msgDiv.innerHTML = text;
+            chatArea.insertBefore(msgDiv, loadingEl);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+    </script>
+</body>
+</html>

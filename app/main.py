@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 import re
 import time
 import requests
@@ -137,10 +138,45 @@ def voice_command():
 def screen_analyze():
     """안드로이드의 Accessibility 트리(JSON)와 캡처본(Base64)을 받아 분석하고,
        여러 선택지가 있을 경우 어르신께 물어봅니다."""
-    data = request.json or {}
+    ui_elements = []
+    screenshot_base64 = ''
     
-    ui_elements = data.get('ui_elements', [])
-    screenshot_base64 = data.get('screenshot', '')
+    # 1. 안드로이드 실제 연동 (Multipart: 이미지 파일 + JSON 폼 데이터)
+    if request.files or request.form:
+        # 이미지 파일 수신 및 Base64 인코딩 (AI 모델이 Base64를 요구함)
+        file = request.files.get('image') or request.files.get('screenshot')
+        if file:
+            image_bytes = file.read()
+            screenshot_base64 = base64.b64encode(image_bytes).decode('utf-8')
+            
+            # 윈도우에서 바로 확인할 수 있도록 imgs 폴더에 파일로도 저장
+            save_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'imgs')
+            os.makedirs(save_dir, exist_ok=True)
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            fname = file.filename if file.filename else "screen.png"
+            save_path = os.path.join(save_dir, f"{timestamp}_{fname}")
+            with open(save_path, 'wb') as f:
+                f.write(image_bytes)
+            
+        # 폼 데이터에서 트리 구조 JSON 파싱
+        # 안드로이드에서 'json_data' 또는 'ui_elements' 키로 스트링을 보낸다고 가정
+        json_str = request.form.get('json_data') or request.form.get('ui_elements') or '[]'
+        try:
+            parsed_form = json.loads(json_str)
+            ui_elements = parsed_form.get('ui_elements', []) if isinstance(parsed_form, dict) else parsed_form
+        except Exception as e:
+            print(f"[경고] Multipart JSON 파싱 실패: {e}", flush=True)
+            
+    # 2. 기존 웹사이트 테스트 호환용 (순수 JSON)
+    elif request.is_json:
+        data = request.json or {}
+        ui_elements = data.get('ui_elements', [])
+        screenshot_base64 = data.get('screenshot', '')
+    
+    # [로그] 안드로이드에서 보낸 UI 트리(접근성 노드) 데이터 확인
+    print(f"\n[안드로이드 UI 트리 수신] 총 {len(ui_elements)}개의 UI 요소가 전달되었습니다.", flush=True)
+    if ui_elements:
+        print(f"[UI 트리 예시] 첫 번째 요소: {ui_elements[0]}", flush=True)
     current_intent = app_state.get("recent_intent", "알 수 없는 작업")
     
     history_text = "\n".join([f"{msg['role']}: {msg['text']}" for msg in app_state["chat_history"][-6:]])
@@ -156,7 +192,9 @@ def screen_analyze():
     [핵심 규칙 - 반드시 순차적으로 1단계씩 소통하세요!]
     1. [소거법 질문] 화면에 여러 선택지(예: 여러 검색 결과, 여러 버스 경로)가 있다면 전체를 읊지 마세요. 무조건 "가장 첫 번째/가장 빠른" 단 1개만 찝어서 물어보세요. (예: "버스로 30분 걸리는 첫 번째 경로로 안내해 드릴까요?") (status: chat)
     2. [1액션 1소통] 사용자가 특정 선택지를 고르거나(예: "두번째 꺼로 해줘"), 앱을 조작할 때 인공지능이 마음대로 클릭(ACTION_CLICK)해버리지 마세요!
-    3. 반드시 **지금 당장 눌러야 할 단 1개의 버튼**에만 오버레이 박스를 띄우고(status: overlay_command), 어르신이 직접 누르시도록 음성으로 안내하며 한 번씩 액션을 끊어가세요. (예: "화면에 표시된 두 번째 경로 버튼을 눌러주세요" -> 대기)
+    3. 반드시 **지금 당장 눌러야 할 단 1개의 버튼**에만 오버레이 박스를 띄우세요 (status: overlay_command). 그리고 어르신이 화면을 보고 직접 누르실 수 있도록, "빨간색 네모 박스가 쳐진 [버튼이름] 버튼을 눌러주세요" 처럼 매우 직관적이고 친절하게 TTS 문장을 작성하세요.
+    4. [ID 기반 제어] 응답 시 JSON 데이터 안에 안드로이드가 준 UI 요소의 고유 ID(`target_id`)와 인덱스(`target_index`)를 반드시 포함하세요.
+    5. [교육용 UX 원칙] 어르신의 학습을 위해 버튼 클릭(예: 돋보기 버튼, 확인 버튼 등)은 모두 오버레이로 유도하여 어르신이 직접 누르시게 합니다. 오직 '글자 타이핑'이 필요한 입력창(EditText)에서만 AI가 ACTION_SET_TEXT로 글자를 대신 써줍니다.
     
     [이전 대화 내역 (참조)]
     {history_text}
@@ -167,22 +205,23 @@ def screen_analyze():
         "tts_message": "검색된 경로 중, 버스로 20분 걸리는 첫 번째 빠른 경로로 안내를 시작할까요?"
     }}
 
-    [상황 B: 확정된 텍스트를 대상 입력칸에 써야할 때]
+    [상황 B: 텍스트 입력창(EditText 등)이 활성화되어 목적지를 타이핑해야 할 때 (자동 텍스트 입력)]
     {{
         "status": "system_action",
         "action_type": "ACTION_SET_TEXT",
+        "target_id": "추출한 텍스트 입력창 ID (예: com.kakao.taxi:id/search_bar)",
         "target_index": 15,
-        "target_text": "검색창",
-        "arguments": "서울삼성병원",
-        "tts_message": "도착지에 서울삼성병원을 입력했어요."
+        "arguments": "강남 서울병원",
+        "tts_message": "해당 목적지가 입력되고 있으니 잠시만 기다려주세요"
     }}
 
     [상황 C: 사용자가 선택을 완료하여, 해당 버튼 1개를 누르도록 오버레이로 유도할 때]
     {{
         "status": "overlay_command",
+        "target_id": "추출한 ID값 (예: com.kakao.taxi:id/btn_call)",
         "target_index": 12,
-        "target_text": "버튼 이름",
-        "tts_message": "선택하신 두 번째 경로 버튼을 화면에서 직접 눌러주세요."
+        "target_text": "호출하기",
+        "tts_message": "화면에 빨간색 네모 박스가 쳐진 '호출하기' 버튼을 손가락으로 꾹 눌러주세요."
     }}
 
     --- 여기서부터가 현재 화면에 대한 데이터입니다 ---
